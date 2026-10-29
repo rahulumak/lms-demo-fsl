@@ -12,27 +12,6 @@ from app.services import course_service, lesson_service, enrollment_service
 
 router = APIRouter(prefix="/courses", tags=["catalog"])
 
-
-def _optional_user(
-    credentials=Depends(__import__("fastapi.security", fromlist=["HTTPBearer"]).HTTPBearer(auto_error=False)),
-    db: Session = Depends(get_db),
-) -> Optional[User]:
-    """Return the current user if a valid token is provided, else None."""
-    if not credentials:
-        return None
-    try:
-        from app.db.dependencies import get_current_user as _get
-        from app.core.security import decode_access_token
-        import jwt
-        payload = decode_access_token(credentials.credentials)
-        if payload.get("type") != "access":
-            return None
-        user = db.get(User, int(payload["sub"]))
-        return user if user and user.is_active else None
-    except Exception:
-        return None
-
-
 @router.get("", response_model=dict)
 def list_courses(
     db: Annotated[Session, Depends(get_db)],

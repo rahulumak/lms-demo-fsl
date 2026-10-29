@@ -116,3 +116,39 @@ def test_logout_without_origin_rejected(client):
     login(client)
     r = client.post("/api/v1/auth/logout")
     assert r.status_code == 403
+
+
+# ── FIND-002a: SECRET_KEY minimum length ──────────────────────────────────────
+
+def test_secret_key_validator_rejects_short_key():
+    from pydantic import ValidationError
+    from app.core.config import Settings
+    with pytest.raises(ValidationError, match="SECRET_KEY must be at least 32 characters"):
+        Settings(SECRET_KEY="tooshort", DATABASE_URL="sqlite:///./x.db")
+
+
+def test_secret_key_validator_accepts_32_char_key():
+    from app.core.config import Settings
+    s = Settings(SECRET_KEY="a" * 32, DATABASE_URL="sqlite:///./x.db")
+    assert len(s.SECRET_KEY) == 32
+
+
+# ── FIND-007: Rate limiter uses X-Forwarded-For ───────────────────────────────
+
+def test_rate_limiter_reads_x_forwarded_for(client):
+    """Rate limiter must use X-Forwarded-For, not request.client.host."""
+    from app.main import _rate_store
+    # Clear any prior state for this IP
+    key = "1.2.3.4:/api/v1/auth/login"
+    _rate_store.pop(key, None)
+    # 10 requests succeed (limit is 10/min for /auth/login)
+    for _ in range(10):
+        client.post("/api/v1/auth/login",
+                    json={"email": "x@x.com", "password": "x"},
+                    headers={"x-forwarded-for": "1.2.3.4"})
+    # 11th must be rate-limited
+    r = client.post("/api/v1/auth/login",
+                    json={"email": "x@x.com", "password": "x"},
+                    headers={"x-forwarded-for": "1.2.3.4"})
+    assert r.status_code == 429
+    _rate_store.pop(key, None)  # cleanup

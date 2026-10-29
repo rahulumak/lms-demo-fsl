@@ -10,21 +10,27 @@ from app.models.course import Course
 from app.schemas.progress import CourseProgressOut, StudentProgressSummary
 
 
-def _get_or_create_progress(db: Session, enrollment_id: int, lesson_id: int) -> LessonProgress:
+def _get_or_create_progress(db: Session, enrollment: Enrollment, lesson: Lesson) -> LessonProgress:
+    """Get or create a LessonProgress record. Raises 400 if lesson does not belong to enrollment's course."""
+    if enrollment.course_id != lesson.course_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Lesson does not belong to the enrolled course",
+        )
     lp = db.query(LessonProgress).filter(
-        LessonProgress.enrollment_id == enrollment_id,
-        LessonProgress.lesson_id == lesson_id,
+        LessonProgress.enrollment_id == enrollment.id,
+        LessonProgress.lesson_id == lesson.id,
     ).first()
     if not lp:
-        lp = LessonProgress(enrollment_id=enrollment_id, lesson_id=lesson_id)
+        lp = LessonProgress(enrollment_id=enrollment.id, lesson_id=lesson.id)
         db.add(lp)
         try:
             db.flush()
         except IntegrityError:
             db.rollback()
             lp = db.query(LessonProgress).filter(
-                LessonProgress.enrollment_id == enrollment_id,
-                LessonProgress.lesson_id == lesson_id,
+                LessonProgress.enrollment_id == enrollment.id,
+                LessonProgress.lesson_id == lesson.id,
             ).first()
     return lp
 
@@ -41,7 +47,7 @@ def start_lesson(db: Session, student_id: int, lesson_id: int) -> LessonProgress
     if not enrollment:
         raise HTTPException(status_code=403, detail="Not enrolled in this course")
 
-    lp = _get_or_create_progress(db, enrollment.id, lesson_id)
+    lp = _get_or_create_progress(db, enrollment, lesson)
     if lp.status == ProgressStatus.not_started:
         lp.status = ProgressStatus.in_progress
         lp.started_at = datetime.now(timezone.utc)
@@ -63,7 +69,7 @@ def complete_lesson(db: Session, student_id: int, lesson_id: int) -> LessonProgr
     if not enrollment:
         raise HTTPException(status_code=403, detail="Not enrolled in this course")
 
-    lp = _get_or_create_progress(db, enrollment.id, lesson_id)
+    lp = _get_or_create_progress(db, enrollment, lesson)
     now = datetime.now(timezone.utc)
     if lp.status != ProgressStatus.completed:
         lp.status = ProgressStatus.completed
