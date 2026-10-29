@@ -1,0 +1,470 @@
+{
+  "info": {
+    "name": "LMS Demo API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Full API collection for LMS Demo (FastAPI backend on port 9000). Set {{base_url}} = http://127.0.0.1:9000/api/v1 and {{access_token}} after login."
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:9000/api/v1" },
+    { "key": "access_token", "value": "" },
+    { "key": "course_id", "value": "1" },
+    { "key": "lesson_id", "value": "1" },
+    { "key": "student_id", "value": "2" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "url": "http://127.0.0.1:9000/health/live"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Alice Example\",\n  \"email\": \"alice@example.com\",\n  \"password\": \"Password1!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (Instructor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "  pm.collectionVariables.set('access_token', json.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rahul.umak@test.com\",\n  \"password\": \"InstructorPass1!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (Student 1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "  pm.collectionVariables.set('access_token', json.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rutwij.bawaskar@test.com\",\n  \"password\": \"StudentPass1!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (Student 2)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"srividhya.suri@test.com\",\n  \"password\": \"StudentPass1!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login (Student 3)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"rushikesh.cheke@test.com\",\n  \"password\": \"StudentPass1!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/refresh",
+            "description": "Requires refresh_token HttpOnly cookie (set automatically by browser/Postman after login)"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/logout",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+            }
+          }
+        },
+        {
+          "name": "Get Current User (me)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/auth/me",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catalog (Public)",
+      "item": [
+        {
+          "name": "List Published Courses",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/courses?skip=0&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["courses"],
+              "query": [
+                { "key": "skip", "value": "0" },
+                { "key": "limit", "value": "20" },
+                { "key": "search", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Courses",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/courses?search=python&skip=0&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["courses"],
+              "query": [
+                { "key": "search", "value": "python" },
+                { "key": "skip", "value": "0" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Course by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/courses/{{course_id}}"
+          }
+        },
+        {
+          "name": "Get Course Lessons (Public)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/courses/{{course_id}}/lessons"
+          }
+        },
+        {
+          "name": "Enroll in Course (Student)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/courses/{{course_id}}/enroll",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Instructor",
+      "item": [
+        {
+          "name": "Courses",
+          "item": [
+            {
+              "name": "List My Courses",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/instructor/courses",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                }
+              }
+            },
+            {
+              "name": "Create Course",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/instructor/courses",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                },
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"My New Course\",\n  \"description\": \"A comprehensive course on the topic.\",\n  \"thumbnail_url\": \"https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Get Course by ID",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                }
+              }
+            },
+            {
+              "name": "Update Course",
+              "request": {
+                "method": "PATCH",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                },
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Updated Course Title\",\n  \"description\": \"Updated description.\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Publish Course",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}/publish",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                }
+              }
+            },
+            {
+              "name": "Archive Course",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}/archive",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                }
+              }
+            },
+            {
+              "name": "Delete Course",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lessons",
+          "item": [
+            {
+              "name": "List Lessons",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}/lessons",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                }
+              }
+            },
+            {
+              "name": "Create Lesson",
+              "request": {
+                "method": "POST",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}/lessons",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                },
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Introduction\",\n  \"content\": \"Welcome to this lesson.\",\n  \"video_url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\",\n  \"is_published\": false\n}"
+                }
+              }
+            },
+            {
+              "name": "Update Lesson",
+              "request": {
+                "method": "PATCH",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}/lessons/{{lesson_id}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                },
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Updated Lesson Title\",\n  \"content\": \"Updated content.\",\n  \"is_published\": true\n}"
+                }
+              }
+            },
+            {
+              "name": "Reorder Lessons",
+              "request": {
+                "method": "PATCH",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}/lessons/reorder",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                },
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lesson_ids\": [3, 1, 2, 4, 5]\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete Lesson",
+              "request": {
+                "method": "DELETE",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}/lessons/{{lesson_id}}",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Progress",
+          "item": [
+            {
+              "name": "Course Progress (All Students)",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}/progress",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                }
+              }
+            },
+            {
+              "name": "Student Progress Detail",
+              "request": {
+                "method": "GET",
+                "url": "{{base_url}}/instructor/courses/{{course_id}}/students/{{student_id}}/progress",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Student",
+      "item": [
+        {
+          "name": "My Enrolled Courses",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/students/me/courses",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+            }
+          }
+        },
+        {
+          "name": "My Course Progress",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/students/me/courses/{{course_id}}/progress",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+            }
+          }
+        },
+        {
+          "name": "My Course Lessons",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/students/me/courses/{{course_id}}/lessons",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+            }
+          }
+        },
+        {
+          "name": "Start Lesson",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/students/me/lessons/{{lesson_id}}/start",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+            }
+          }
+        },
+        {
+          "name": "Complete Lesson",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/students/me/lessons/{{lesson_id}}/complete",
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{access_token}}" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
