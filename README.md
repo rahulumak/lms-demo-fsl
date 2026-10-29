@@ -233,12 +233,12 @@ alembic revision --autogenerate -m "description"
 ## Test Commands
 
 ```bash
-# Backend tests
+# Backend tests (49 tests)
 cd backend
 source .venv/bin/activate
 pytest tests/ -v
 
-# Frontend tests
+# Frontend tests (34 tests)
 cd frontend
 npm test
 
@@ -292,7 +292,7 @@ docker-compose exec backend python scripts/seed_data.py
 | DELETE   | `/api/v1/instructor/courses/{id}/lessons/{lid}`                 | Instructor   | Delete lesson                      |
 | GET      | `/api/v1/instructor/courses/{id}/progress`                      | Instructor   | All students' progress             |
 | GET      | `/api/v1/instructor/courses/{id}/students/{sid}/progress`       | Instructor   | Single student progress            |
-| GET      | `/api/v1/students/me/courses`                                   | Student      | My enrolled courses                |
+| GET      | `/api/v1/students/me/courses`                                   | Student      | My enrolled courses (typed `StudentCourseItem` response) |
 | GET      | `/api/v1/students/me/courses/{id}/lessons`                      | Student      | Lessons for enrolled course        |
 | GET      | `/api/v1/students/me/courses/{id}/progress`                     | Student      | My progress for a course           |
 | POST     | `/api/v1/students/me/lessons/{lid}/start`                       | Student      | Mark lesson started                |
@@ -307,8 +307,11 @@ A full Postman collection is available at `LMS_API.postman_collection.json` — 
 - Refresh token cookie is `HttpOnly`, `SameSite=Strict`, scoped to `/api/v1/auth`
 - `Origin`/`Referer` header validated on `/refresh` and `/logout` to prevent CSRF
 - Passwords hashed with Argon2 via pwdlib
+- `SECRET_KEY` must be at least 32 characters — startup will fail with a validation error if shorter
 - Access tokens expire in 15 minutes; refresh tokens in 7 days with rotation
 - Rate limiting on `/auth/login` (10 req/min) and `/auth/register` (20 req/min) per IP
+- Rate limiter resolves real client IP via `X-Forwarded-For` → `X-Real-IP` → direct connection (proxy-aware)
+- `create_tables()` is skipped when `APP_ENV=production` — Alembic is the sole migration tool in production
 - `ALLOWED_ORIGINS` must be set to your actual frontend domain in production
 
 ---
@@ -344,6 +347,7 @@ curl -X POST http://localhost:9000/api/v1/instructor/courses \
 - No file upload — video URLs only (YouTube / Vimeo)
 - No email verification on registration
 - Rate limiter uses in-memory store — not suitable for multi-process prod without Redis
+- Rate limiter reads `X-Forwarded-For` but has no trusted-proxy allowlist — header can be spoofed by clients in deployments without a hardened proxy; replace with a Redis-backed solution (e.g. `slowapi`) for production
 - No admin panel for user management
 - SQLite does not enforce foreign key constraints by default — PostgreSQL recommended for production
 
@@ -352,11 +356,12 @@ curl -X POST http://localhost:9000/api/v1/instructor/courses \
 ## Production Checklist
 
 - [ ] Set `APP_ENV=production` and `COOKIE_SECURE=true`
-- [ ] Generate a strong `SECRET_KEY` (`openssl rand -hex 32`)
+- [ ] Generate a strong `SECRET_KEY` — minimum 32 characters (`openssl rand -hex 32` produces 64)
 - [ ] Use PostgreSQL with a strong password
 - [ ] Put backend behind HTTPS (nginx / Caddy)
 - [ ] Set `ALLOWED_ORIGINS` to your actual frontend domain
 - [ ] Replace in-memory rate limiter with Redis-backed solution
-- [ ] Run `alembic upgrade head` as a deployment step (not at startup)
+- [ ] Run `alembic upgrade head` as a deployment step — `create_tables()` is disabled when `APP_ENV=production`
+- [ ] Configure reverse proxy to set `X-Forwarded-For` / `X-Real-IP` and restrict header spoofing
 - [ ] Set up log aggregation and monitoring
 - [ ] Review and rotate JWT secrets periodically
