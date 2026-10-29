@@ -129,7 +129,7 @@ def seed():
             "Learn Python from scratch with hands-on examples.",
             "A comprehensive introduction to Python programming covering variables, control flow, functions, and OOP. Perfect for absolute beginners.",
             CourseStatus.published,
-            "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=800&q=80",
+            "https://picsum.photos/seed/python/800/450",
         )
 
         web_course = _get_or_create_course(
@@ -138,7 +138,7 @@ def seed():
             "Build your first website with HTML, CSS, and JavaScript.",
             "Start from zero and learn how the web works. You will build real pages using HTML structure, CSS styling, and JavaScript interactivity.",
             CourseStatus.published,
-            "https://images.unsplash.com/photo-1547658719-da2b51169166?w=800&q=80",
+            "https://picsum.photos/seed/webdev/800/450",
         )
 
         react_course = _get_or_create_course(
@@ -147,7 +147,7 @@ def seed():
             "Master React 18 — components, hooks, state, and routing.",
             "A practical React course covering JSX, useState, useEffect, React Router, and fetching data from APIs. Build a real project by the end.",
             CourseStatus.published,
-            "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&q=80",
+            "https://picsum.photos/seed/react/800/450",
         )
 
         fastapi_course = _get_or_create_course(
@@ -156,7 +156,7 @@ def seed():
             "Build production-ready REST APIs with FastAPI and Python.",
             "Learn FastAPI from the ground up — routing, Pydantic models, dependency injection, JWT auth, and SQLAlchemy. Deploy a full API by the end.",
             CourseStatus.draft,
-            "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&q=80",
+            "https://picsum.photos/seed/fastapi/800/450",
         )
 
         # ── Lessons ────────────────────────────────────────────────────────────

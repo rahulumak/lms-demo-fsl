@@ -91,7 +91,7 @@ def test_me_unauthenticated(client):
 def test_refresh_token(client):
     register(client)
     login(client)  # sets cookie on client
-    r = client.post("/api/v1/auth/refresh")
+    r = client.post("/api/v1/auth/refresh", headers={"origin": "http://localhost:3000"})
     assert r.status_code == 200
     assert "access_token" in r.json()
 
@@ -99,6 +99,20 @@ def test_refresh_token(client):
 def test_logout_revokes_session(client):
     register(client)
     login(client)
-    client.post("/api/v1/auth/logout")
-    r = client.post("/api/v1/auth/refresh")
+    client.post("/api/v1/auth/logout", headers={"origin": "http://localhost:3000"})
+    r = client.post("/api/v1/auth/refresh", headers={"origin": "http://localhost:3000"})
     assert r.status_code == 401
+
+
+def test_refresh_without_origin_rejected(client):
+    register(client)
+    login(client)
+    r = client.post("/api/v1/auth/refresh")
+    assert r.status_code == 403
+
+
+def test_logout_without_origin_rejected(client):
+    register(client)
+    login(client)
+    r = client.post("/api/v1/auth/logout")
+    assert r.status_code == 403
