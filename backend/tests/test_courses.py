@@ -239,3 +239,59 @@ def test_catalog_draft_not_visible(client):
     course = _create_course(client, h, "Secret Draft")
     r = client.get(f"/api/v1/courses/{course['id']}")
     assert r.status_code == 404
+
+
+# ── FIND-003: _optional_user dead code removed ───────────────────────────────
+
+def test_catalog_accessible_unauthenticated(client):
+    """Catalog endpoints work without auth — confirms _optional_user removal didn't break anything."""
+    r = client.get("/api/v1/courses")
+    assert r.status_code == 200
+    assert "items" in r.json()
+
+
+def test_catalog_no_optional_user_attribute():
+    """_optional_user must not exist in catalog module."""
+    from app.api.v1.endpoints import catalog
+    assert not hasattr(catalog, "_optional_user")
+
+
+# ── FIND-004: my_courses response is typed ───────────────────────────────────
+
+def test_my_courses_response_fields(client):
+    """my_courses must return only the declared StudentCourseItem fields."""
+    h = _instructor_token(client)
+    course = _create_course(client, h)
+    client.post(f"/api/v1/instructor/courses/{course['id']}/publish", headers=h)
+    sh = _student_token(client)
+    client.post(f"/api/v1/courses/{course['id']}/enroll", headers=sh)
+
+    r = client.get("/api/v1/students/me/courses", headers=sh)
+    assert r.status_code == 200
+    item = r.json()[0]
+    expected_keys = {
+        "enrollment_id", "course_id", "course_title", "course_slug",
+        "course_thumbnail", "enrollment_status", "enrolled_at",
+        "last_accessed_at", "progress_percentage", "completed_lessons",
+        "total_published_lessons",
+    }
+    assert set(item.keys()) == expected_keys
+    assert "password_hash" not in item
+
+
+# ── FIND-005: my_course_lessons single DB call ────────────────────────────────
+
+def test_my_course_lessons_returns_lessons(client):
+    """my_course_lessons works correctly after the double-call fix."""
+    h = _instructor_token(client)
+    course = _create_course(client, h)
+    cid = course["id"]
+    client.post(f"/api/v1/instructor/courses/{cid}/lessons",
+                json={"title": "L1", "is_published": True}, headers=h)
+    client.post(f"/api/v1/instructor/courses/{cid}/publish", headers=h)
+    sh = _student_token(client)
+    client.post(f"/api/v1/courses/{cid}/enroll", headers=sh)
+
+    r = client.get(f"/api/v1/students/me/courses/{cid}/lessons", headers=sh)
+    assert r.status_code == 200
+    assert len(r.json()) == 1

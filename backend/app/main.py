@@ -22,8 +22,9 @@ app = FastAPI(
 
 @app.on_event("startup")
 def on_startup():
-    from app.db.base import create_tables
-    create_tables()
+    if not settings.is_production:
+        from app.db.base import create_tables
+        create_tables()
 
 
 # ── Simple in-process rate limiter (no external deps) ─────────────────────────
@@ -36,9 +37,16 @@ async def rate_limit_middleware(request: Request, call_next):
     path = request.url.path
     limit = _RATE_LIMITED_PATHS.get(path)
     if limit:
-        ip = request.client.host if request.client else "unknown"
-        # Skip rate limiting for testclient (127.0.0.1 / testclient)
-        if ip not in ("testclient", "127.0.0.1"):
+        # Resolve real client IP: X-Forwarded-For (first entry) > X-Real-IP > direct
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            ip = forwarded_for.split(",")[0].strip()
+        else:
+            ip = request.headers.get("x-real-ip") or (
+                request.client.host if request.client else "unknown"
+            )
+        # Skip only the test client sentinel — not 127.0.0.1 (which is a real proxy loopback)
+        if ip != "testclient":
             key = f"{ip}:{path}"
             now = time()
             window = 60.0

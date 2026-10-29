@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     SEED_STUDENT3_EMAIL: str = "rushikesh.cheke@test.com"
     SEED_STUDENT3_PASSWORD: str = "StudentPass1!"
 
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def secret_key_min_length(cls, v: str) -> str:
+        if len(v) < 32:
+            raise ValueError("SECRET_KEY must be at least 32 characters")
+        return v
+
     @property
     def allowed_origins_list(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]

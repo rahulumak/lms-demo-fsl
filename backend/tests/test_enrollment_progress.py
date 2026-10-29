@@ -159,3 +159,30 @@ def test_unpublished_lessons_excluded_from_progress(client):
 
     r = client.get(f"/api/v1/students/me/courses/{cid}/progress", headers=sh)
     assert r.json()["total_published_lessons"] == 2
+
+
+# ── FIND-008: Cross-course progress guard ───────────────────────────────────
+
+def test_cannot_complete_lesson_from_different_course(client):
+    """A student enrolled in course A cannot mark a lesson from course B as complete."""
+    ih = _instructor_token(client)
+
+    # Course A with one published lesson
+    ca = client.post("/api/v1/instructor/courses", json={"title": "Course A"}, headers=ih).json()
+    la = client.post(f"/api/v1/instructor/courses/{ca['id']}/lessons",
+                     json={"title": "LA", "is_published": True}, headers=ih).json()
+    client.post(f"/api/v1/instructor/courses/{ca['id']}/publish", headers=ih)
+
+    # Course B with one published lesson
+    cb = client.post("/api/v1/instructor/courses", json={"title": "Course B"}, headers=ih).json()
+    lb = client.post(f"/api/v1/instructor/courses/{cb['id']}/lessons",
+                     json={"title": "LB", "is_published": True}, headers=ih).json()
+    client.post(f"/api/v1/instructor/courses/{cb['id']}/publish", headers=ih)
+
+    # Student enrolls only in Course A
+    sh = _student_token(client)
+    client.post(f"/api/v1/courses/{ca['id']}/enroll", headers=sh)
+
+    # Attempt to complete a lesson from Course B (not enrolled)
+    r = client.post(f"/api/v1/students/me/lessons/{lb['id']}/complete", headers=sh)
+    assert r.status_code == 403
